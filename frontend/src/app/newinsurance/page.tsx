@@ -5,7 +5,8 @@ import { AlertCircle, Wallet, Shield, Plus } from 'lucide-react';
 import { InsuranceABI } from '../../../abi/insurance';
 // Mock ABI - replace with your actual ABI
 
-const contractAddress = "0x68C4e7E823D36A0941Eed5c406D60e1Bc0cdAA53";
+const contractAddress =  "0x49d6B08c3B968eb4D25a4BEFf093c88bB1C2BcE9";
+const deployer = "0x92896f08bc775A9AD882687D56aE6427839933D6"
 interface WalletState {
     account: string | null;
     provider: ethers.BrowserProvider | null;
@@ -107,7 +108,19 @@ const NewInsurance = () => {
       setLoading(false);
     }
   };
-  
+
+  const checkOwner = () => {
+    console.log(wallet.account);
+    console.log(deployer);
+    if(wallet.account == deployer) {
+      alert("Bhai Yeh toh wahi banda hai ");
+
+    }else {
+      alert("Bhai yeh koi dusra banda hai ")
+    }
+  }
+
+
   // Additional type definitions you might need
   type SetWalletFunction = React.Dispatch<React.SetStateAction<WalletState>>;
   type SetErrorFunction = React.Dispatch<React.SetStateAction<string>>;
@@ -209,10 +222,14 @@ const NewInsurance = () => {
               />
             </div>
 
+            <button onClick={checkOwner}>
+              Check Owner
+            </button>
+
  
           </div>
 
-          {/* Transaction Hash */}
+  
           {txHash && (
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-blue-700">
