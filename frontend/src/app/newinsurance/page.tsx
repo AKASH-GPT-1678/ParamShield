@@ -1,29 +1,30 @@
-"use client"
+"use client";
 import React from 'react';
 import { ethers } from 'ethers';
 import { AlertCircle, Wallet, Shield, Plus } from 'lucide-react';
 import { InsuranceABI } from '../../../abi/insurance';
-// Mock ABI - replace with your actual ABI
 
-const contractAddress =  "0x49d6B08c3B968eb4D25a4BEFf093c88bB1C2BcE9";
+
+const contractAddress = "0x49d6B08c3B968eb4D25a4BEFf093c88bB1C2BcE9"; //
 const deployer = "0x92896f08bc775A9AD882687D56aE6427839933D6"
 interface WalletState {
-    account: string | null;
-    provider: ethers.BrowserProvider | null;
-    signer: ethers.JsonRpcSigner | null;
-    contract: ethers.Contract | null;
+  account: string | null;
+  provider: ethers.BrowserProvider | null;
+  signer: ethers.JsonRpcSigner | null;
+  contract: ethers.Contract | null;
+}
+
+
+declare global {
+  interface Window {
+    ethereum?: {
+      request: (args: { method: string; params?: any[] }) => Promise<any>;
+      on: (event: string, callback: (...args: any[]) => void) => void;
+      removeListener: (event: string, callback: (...args: any[]) => void) => void;
+    };
   }
-  
-  // Extend Window interface to include ethereum
-  declare global {
-    interface Window {
-      ethereum?: {
-        request: (args: { method: string; params?: any[] }) => Promise<any>;
-        on: (event: string, callback: (...args: any[]) => void) => void;
-        removeListener: (event: string, callback: (...args: any[]) => void) => void;
-      };
-    }
-  }
+}
+export let useContract: any;
 
 const NewInsurance = () => {
   const [wallet, setWallet] = React.useState<WalletState>({
@@ -40,15 +41,15 @@ const NewInsurance = () => {
   });
   const [txHash, setTxHash] = React.useState('');
 
- 
+
   React.useEffect(() => {
     initializeProvider();
     checkExistingConnection();
   }, []);
 
 
-  
-  // Type-safe wallet functions
+
+
   const initializeProvider = async (): Promise<void> => {
     try {
       if (typeof window !== 'undefined' && window.ethereum) {
@@ -62,12 +63,12 @@ const NewInsurance = () => {
       setError('Failed to initialize provider: ' + errorMessage);
     }
   };
-  
+
   const checkExistingConnection = async (): Promise<void> => {
     try {
       if (window.ethereum) {
-        const accounts: string[] = await window.ethereum.request({ 
-          method: 'eth_accounts' 
+        const accounts: string[] = await window.ethereum.request({
+          method: 'eth_accounts'
         });
         if (accounts.length > 0) {
           await connectWallet();
@@ -77,24 +78,25 @@ const NewInsurance = () => {
       console.log('No existing connection found');
     }
   };
-  
+
   const connectWallet = async (): Promise<void> => {
     try {
       setLoading(true);
       setError('');
-  
+
       if (!window.ethereum) {
         throw new Error('MetaMask not installed');
       }
-  
+
       const provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
       const signer: ethers.JsonRpcSigner = await provider.getSigner();
       const account: string = await signer.getAddress();
-      
+
       // Create contract instance
-      const contract = new ethers.Contract(contractAddress, InsuranceABI, signer);
-  
+      let contract = new ethers.Contract(contractAddress, InsuranceABI, signer);
+      useContract = contract;
+
       setWallet({
         account,
         provider,
@@ -112,21 +114,59 @@ const NewInsurance = () => {
   const checkOwner = () => {
     console.log(wallet.account);
     console.log(deployer);
-    if(wallet.account == deployer) {
+    if (wallet.account == deployer) {
       alert("Bhai Yeh toh wahi banda hai ");
 
-    }else {
-      alert("Bhai yeh koi dusra banda hai ")
+    } else {
+      alert("Bhai yeh koi dusra banda hai ");
     }
-  }
+  };
 
 
-  // Additional type definitions you might need
+  const trailContract = async () => {
+    if (!wallet.contract) {
+      setError("Contract not initialized yet. Connect your wallet first!");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      // Use the contract from wallet state
+      const contractWithSigner = wallet.contract.connect(wallet.signer!);
+      //@ts-ignore
+      const tx = await contractWithSigner.newInsurance(
+        "Life Policy",                               // _name
+        ethers.parseEther(formData.premium || "1"),  // _premium
+        ethers.parseEther(formData.coverage || "100"), // _sumAssured
+        30,                                           // _payInterval
+        ethers.parseEther("0.5"),                     // _initialPayment
+        "Family",                                     // _insuranceFor
+        "My first insurance",                         // _holderRemark
+        Math.floor(Date.now() / 1000),               // _startDate
+        Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60, // _endDate
+        10                                            // _numOfSubscribers
+      );
+
+      // Wait for the transaction to be mined
+      const receipt = await tx.wait();
+      console.log("Insurance created:", receipt.transactionHash);
+      setTxHash(receipt.transactionHash);
+    } catch (err: any) {
+      setError(err?.message || "Failed to create insurance");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
   type SetWalletFunction = React.Dispatch<React.SetStateAction<WalletState>>;
   type SetErrorFunction = React.Dispatch<React.SetStateAction<string>>;
   type SetLoadingFunction = React.Dispatch<React.SetStateAction<boolean>>;
-  
-  // Example of how to use these types in your component
+
+
   interface Props {
     setWallet: SetWalletFunction;
     setError: SetErrorFunction;
@@ -135,7 +175,7 @@ const NewInsurance = () => {
     InsuranceABI: ethers.InterfaceAbi;
   }
 
-  const handleInputChange = (e : any) => {
+  const handleInputChange = (e: any) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -145,12 +185,13 @@ const NewInsurance = () => {
 
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+
       <div className="flex items-center gap-3 mb-6">
         <Shield className="h-8 w-8 text-blue-600" />
         <h1 className="text-3xl font-bold text-gray-800">Create Insurance Policy</h1>
       </div>
 
-      {/* Error Display */}
+
       {error && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
           <AlertCircle className="h-5 w-5 text-red-500" />
@@ -158,7 +199,7 @@ const NewInsurance = () => {
         </div>
       )}
 
-      {/* Wallet Connection */}
+
       {!wallet.account ? (
         <div className="text-center py-8">
           <Wallet className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -174,17 +215,17 @@ const NewInsurance = () => {
         </div>
       ) : (
         <div>
-          {/* Wallet Info */}
+
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 bg-green-500 rounded-full"></div>
               <span className="text-green-700 font-medium">
-                {/* Connected: {formatAddress(wallet.account)} */}
+
               </span>
             </div>
           </div>
 
-          {/* Form */}
+
           <div className="space-y-6">
             <div>
               <label htmlFor="premium" className="block text-sm font-medium text-gray-700 mb-2">
@@ -222,14 +263,14 @@ const NewInsurance = () => {
               />
             </div>
 
-            <button onClick={checkOwner}>
+            <button onClick={trailContract}>
               Check Owner
             </button>
 
- 
+
           </div>
 
-  
+
           {txHash && (
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-blue-700">
@@ -240,7 +281,7 @@ const NewInsurance = () => {
                   rel="noopener noreferrer"
                   className="underline hover:no-underline"
                 >
-                
+
                 </a>
               </p>
             </div>
