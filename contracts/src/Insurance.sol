@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "../library/InsuranceLibrary.sol";
 
 contract Insurance {
+    using InsuranceLibrary for uint256;
     address public owner;
     uint256 public count;
 
