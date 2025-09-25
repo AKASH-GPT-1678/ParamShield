@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "../library/InsuranceLibrary.sol";
+import "./InsuranceLibrary.sol" ;
 
 contract Insurance {
     using InsuranceLibrary for uint256;
+    
+
     address public owner;
     uint256 public count;
 
@@ -36,7 +38,6 @@ contract Insurance {
     mapping(uint256 => Policy) public policies;
     uint256[] public policyIds;
 
-
     function newInsurance(
         string memory _name,
         uint256 _premium,
@@ -49,9 +50,7 @@ contract Insurance {
         uint256 _endDate,
         uint72 _numOfSubscribers
     ) public onlyOwner {
-      
-        uint256 policyId = InsuranceLibrary.randVal(1_000_000, count); 
-
+        uint256 policyId = InsuranceLibrary.randVal(1_000_000, count);
 
         policies[policyId] = Policy({
             policyId: policyId,
@@ -72,36 +71,20 @@ contract Insurance {
         policyIds.push(policyId);
     }
 
+    function loadAllInsurance() public view returns (Policy[] memory) {
+        Policy[] memory allPolicies = new Policy[](policyIds.length);
 
+        for (uint256 i = 0; i < policyIds.length; i++) {
+            allPolicies[i] = policies[policyIds[i]];
+        }
 
-
-
-   function loadAllInsurance() public view returns (Policy[] memory) {
-    Policy[] memory allPolicies = new Policy[](policyIds.length);
-
-    for (uint i = 0; i < policyIds.length; i++) {
-        allPolicies[i] = policies[policyIds[i]];
+        return allPolicies;
     }
 
-    return allPolicies;
-}
-   
+    function deactivateInsurance(uint256 _policyId) public {
+        Policy storage existingPolicy = policies[_policyId];
+        require(existingPolicy.active, "Inactive policy cannot be deactivated");
 
-
-
- function deactivateInsurance(uint _policyId)public {
-    Policy memory existingPolicy = policies[_policyId];
-  
-
-  require(existingPolicy.active, "Inactive policy cannot be deactivated");
-
-  existingPolicy.active = false;
-
-   
-     
-
-
-
- }
-
+        existingPolicy.active = false;
+    }
 }
